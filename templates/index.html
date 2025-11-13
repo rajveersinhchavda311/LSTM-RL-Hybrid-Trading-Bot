@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis - AI-Powered Trading Signals</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --background: #0a0a0a;
+            --foreground: #fafafa;
+            --card: #1a1a1a;
+            --card-foreground: #fafafa;
+            --border: #2a2a2a;
+            --input: #2a2a2a;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --destructive: #ef4444;
+            --warning: #f59e0b;
+            --muted: #71717a;
+            --muted-foreground: #a1a1aa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--background);
+            color: var(--foreground);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: var(--muted-foreground);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--foreground);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--foreground);
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--foreground);
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        input[type="text"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .nifty-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--foreground);
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .nifty-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            margin-top: 0.5rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .spinner {
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .error p {
+            color: var(--destructive);
+            font-size: 0.875rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .result-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-label {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            margin-bottom: 0.5rem;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--foreground);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .result-value.success {
+            color: var(--success);
+        }
+
+        .result-value.destructive {
+            color: var(--destructive);
+        }
+
+        .result-value.warning {
+            color: var(--warning);
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 2rem 0;
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            margin-bottom: 1rem;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .signal-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .signal-badge.buy {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .signal-badge.sell {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--destructive);
+        }
+
+        .signal-badge.hold,
+        .signal-badge.ambiguous {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .chart-container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--foreground);
+            font-family: 'Courier New', monospace;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .indicator-item {
+            padding: 1rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+        }
+
+        .indicator-label {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            margin-bottom: 0.5rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .indicator-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-wrapper {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Stock Analysis</h1>
+            <p>AI-Powered Stock Analysis & Trading Signals</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Analyze Stock</div>
+            
+            <form id="stockForm" onsubmit="analyzeStock(event)">
+                <div class="form-group">
+                    <label for="niftySelect">Quick Select - Nifty 50</label>
+                    <select id="niftySelect" class="nifty-select" onchange="document.getElementById('ticker').value = this.value">
+                        <option value="">-- Select Nifty 50 Stock --</option>
+                        <option value="RELIANCE.NS">Reliance Industries</option>
+                        <option value="TCS.NS">TCS</option>
+                        <option value="HDFCBANK.NS">HDFC Bank</option>
+                        <option value="INFY.NS">Infosys</option>
+                        <option value="HINDUNILVR.NS">Hindustan Unilever</option>
+                        <option value="ICICIBANK.NS">ICICI Bank</option>
+                        <option value="BHARTIARTL.NS">Bharti Airtel</option>
+                        <option value="SBIN.NS">State Bank of India</option>
+                        <option value="BAJFINANCE.NS">Bajaj Finance</option>
+                        <option value="LICI.NS">LIC India</option>
+                        <option value="ITC.NS">ITC</option>
+                        <option value="SUNPHARMA.NS">Sun Pharma</option>
+                        <option value="HCLTECH.NS">HCL Technologies</option>
+                        <option value="AXISBANK.NS">Axis Bank</option>
+                        <option value="KOTAKBANK.NS">Kotak Mahindra Bank</option>
+                        <option value="LT.NS">Larsen & Toubro</option>
+                        <option value="ASIANPAINT.NS">Asian Paints</option>
+                        <option value="MARUTI.NS">Maruti Suzuki</option>
+                        <option value="TITAN.NS">Titan Company</option>
+                        <option value="ULTRACEMCO.NS">UltraTech Cement</option>
+                        <option value="NESTLEIND.NS">Nestle India</option>
+                        <option value="WIPRO.NS">Wipro</option>
+                        <option value="ONGC.NS">ONGC</option>
+                        <option value="POWERGRID.NS">Power Grid</option>
+                        <option value="NTPC.NS">NTPC</option>
+                        <option value="TATAMOTORS.NS">Tata Motors</option>
+                        <option value="JSWSTEEL.NS">JSW Steel</option>
+                        <option value="ADANIENT.NS">Adani Enterprises</option>
+                        <option value="ADANIPORTS.NS">Adani Ports</option>
+                        <option value="TATASTEEL.NS">Tata Steel</option>
+                        <option value="HINDALCO.NS">Hindalco</option>
+                        <option value="DIVISLAB.NS">Dr. Reddy's</option>
+                        <option value="CIPLA.NS">Cipla</option>
+                        <option value="TECHM.NS">Tech Mahindra</option>
+                        <option value="BAJAJFINSV.NS">Bajaj Finserv</option>
+                        <option value="GRASIM.NS">Grasim</option>
+                        <option value="COALINDIA.NS">Coal India</option>
+                        <option value="M&M.NS">Mahindra & Mahindra</option>
+                        <option value="TATACONSUM.NS">Tata Consumer</option>
+                        <option value="BPCL.NS">BPCL</option>
+                        <option value="IOC.NS">Indian Oil</option>
+                        <option value="HEROMOTOCO.NS">Hero MotoCorp</option>
+                        <option value="EICHERMOT.NS">Eicher Motors</option>
+                        <option value="DABUR.NS">Dabur</option>
+                        <option value="MARICO.NS">Marico</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="ticker">Stock Ticker Symbol</label>
+                    <input 
+                        type="text" 
+                        id="ticker" 
+                        name="ticker" 
+                        placeholder="e.g., IOC.NS, AAPL, RELIANCE.NS"
+                        value="IOC.NS"
+                        required
+                    >
+                    <div class="hint">
+                        Examples: AAPL (US), IOC.NS (India NSE), RELIANCE.NS (India NSE)
+                    </div>
+                </div>
+                
+                <button type="submit" id="analyzeBtn">
+                    <span id="btnText">Analyze Stock</span>
+                    <span class="spinner" id="spinner" style="display: none;"></span>
+                </button>
+            </form>
+
+            <div class="error" id="error">
+                <p id="errorText"></p>
+            </div>
+        </div>
+
+        <div class="card results" id="results">
+            <div class="results-grid" id="mainResults"></div>
+            
+            <div class="section-title" id="indicatorsTitle" style="display: none;">Technical Indicators</div>
+            <div class="indicators-grid" id="indicatorsGrid"></div>
+            
+            <hr class="divider">
+            
+            <div class="section-title">Backtesting Results</div>
+            <div class="results-grid" id="backtestResults"></div>
+
+            <div class="charts-grid" id="chartsGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+
+        function getSignalClass(signal) {
+            const signalLower = signal.toLowerCase();
+            if (signalLower.includes('buy')) return 'buy';
+            if (signalLower.includes('sell')) return 'sell';
+            return 'hold';
+        }
+
+        function formatCurrency(value) {
+            return '₹' + parseFloat(value).toFixed(2);
+        }
+
+        function formatNumber(value) {
+            if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M';
+            if (value >= 1000) return (value / 1000).toFixed(2) + 'K';
+            return value.toFixed(2);
+        }
+
+        function createResultItem(label, value, className = '') {
+            return `
+                <div class="result-item">
+                    <div class="result-label">${label}</div>
+                    <div class="result-value ${className}">${value}</div>
+                </div>
+            `;
+        }
+
+        function destroyCharts() {
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+        }
+
+        function createChart(canvasId, config) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return null;
+            
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            
+            charts[canvasId] = new Chart(ctx, config);
+            return charts[canvasId];
+        }
+
+        function renderCharts(data) {
+            const chartsGrid = document.getElementById('chartsGrid');
+            chartsGrid.innerHTML = '';
+
+            const dates = data.chart_dates || [];
+            const prices = data.chart_prices || [];
+            const volumes = data.chart_volumes || [];
+            const rsi = data.chart_rsi || [];
+            const macd = data.chart_macd || [];
+            const macdSignal = data.chart_macd_signal || [];
+            const macdDiff = data.chart_macd_diff || [];
+            const bbUpper = data.chart_bb_upper || [];
+            const bbLower = data.chart_bb_lower || [];
+            const performance = data.chart_performance || [];
+
+            // Filter out empty arrays
+            const hasValidData = dates.length > 0 && prices.length > 0;
+
+            if (!hasValidData) {
+                chartsGrid.innerHTML = '<p style="color: var(--muted-foreground); text-align: center;">No chart data available</p>';
+                return;
+            }
+
+            const chartConfig = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#fafafa' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#a1a1aa', maxTicksLimit: 10 },
+                        grid: { color: '#2a2a2a' }
+                    },
+                    y: {
+                        ticks: { color: '#a1a1aa' },
+                        grid: { color: '#2a2a2a' }
+                    }
+                }
+            };
+
+            // Price Chart with Bollinger Bands
+            const priceChartHtml = `
+                <div class="chart-container">
+                    <div class="chart-title">Price Chart with Bollinger Bands</div>
+                    <div class="chart-wrapper">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            `;
+            chartsGrid.insertAdjacentHTML('beforeend', priceChartHtml);
+
+            setTimeout(() => {
+                createChart('priceChart', {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Close Price',
+                            data: prices,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'BB Upper',
+                            data: bbUpper,
+                            borderColor: '#8b5cf6',
+                            borderDash: [5, 5],
+                            tension: 0.1
+                        },
+                        {
+                            label: 'BB Lower',
+                            data: bbLower,
+                            borderColor: '#8b5cf6',
+                            borderDash: [5, 5],
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: chartConfig
+                });
+            }, 100);
+
+            // RSI Chart
+            if (rsi.length > 0) {
+                const rsiChartHtml = `
+                    <div class="chart-container">
+                        <div class="chart-title">RSI (Relative Strength Index)</div>
+                        <div class="chart-wrapper">
+                            <canvas id="rsiChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                chartsGrid.insertAdjacentHTML('beforeend', rsiChartHtml);
+
+                setTimeout(() => {
+                    createChart('rsiChart', {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'RSI',
+                        data: rsi,
+                        borderColor: '#f59e0b',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    ...chartConfig,
+                    scales: {
+                        ...chartConfig.scales,
+                        y: {
+                            ...chartConfig.scales.y,
+                            min: 0,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        ...chartConfig.plugins,
+                        annotation: {
+                            annotations: {
+                                overbought: {
+                                    type: 'line',
+                                    yMin: 70,
+                                    yMax: 70,
+                                    borderColor: '#ef4444',
+                                    borderDash: [5, 5]
+                                },
+                                oversold: {
+                                    type: 'line',
+                                    yMin: 30,
+                                    yMax: 30,
+                                    borderColor: '#10b981',
+                                    borderDash: [5, 5]
+                                }
+                            }
+                        }
+                    }
+                }
+                    });
+                }, 200);
+            }
+
+            // MACD Chart
+            if (macd.length > 0 && macdSignal.length > 0) {
+                const macdChartHtml = `
+                    <div class="chart-container">
+                        <div class="chart-title">MACD (Moving Average Convergence Divergence)</div>
+                        <div class="chart-wrapper">
+                            <canvas id="macdChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                chartsGrid.insertAdjacentHTML('beforeend', macdChartHtml);
+
+                setTimeout(() => {
+                    createChart('macdChart', {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'MACD',
+                            data: macd,
+                            borderColor: '#3b82f6',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Signal',
+                            data: macdSignal,
+                            borderColor: '#f59e0b',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Histogram',
+                            data: macdDiff,
+                            type: 'bar',
+                            backgroundColor: macdDiff.map(v => v >= 0 ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)')
+                        }
+                    ]
+                },
+                options: chartConfig
+                    });
+                }, 300);
+            }
+
+            // Volume Chart
+            if (volumes.length > 0) {
+                const volumeChartHtml = `
+                    <div class="chart-container">
+                        <div class="chart-title">Trading Volume</div>
+                        <div class="chart-wrapper">
+                            <canvas id="volumeChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                chartsGrid.insertAdjacentHTML('beforeend', volumeChartHtml);
+
+                setTimeout(() => {
+                    createChart('volumeChart', {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Volume',
+                        data: volumes,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)'
+                    }]
+                },
+                options: chartConfig
+                    });
+                }, 400);
+            }
+
+            // Performance Chart
+            if (performance.length > 0) {
+                const perfChartHtml = `
+                    <div class="chart-container">
+                        <div class="chart-title">Backtesting Performance</div>
+                        <div class="chart-wrapper">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                chartsGrid.insertAdjacentHTML('beforeend', perfChartHtml);
+
+                setTimeout(() => {
+                    createChart('performanceChart', {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Portfolio Value',
+                            data: performance,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: chartConfig
+                    });
+                }, 500);
+            }
+        }
+
+        function analyzeStock(event) {
+            event.preventDefault();
+            
+            const ticker = document.getElementById('ticker').value.trim();
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            const errorText = document.getElementById('errorText');
+            const mainResults = document.getElementById('mainResults');
+            const backtestResults = document.getElementById('backtestResults');
+            const indicatorsGrid = document.getElementById('indicatorsGrid');
+            const indicatorsTitle = document.getElementById('indicatorsTitle');
+            
+            // Reset UI
+            analyzeBtn.disabled = true;
+            setInputDisabled(true);
+            btnText.textContent = 'Analyzing...';
+            spinner.style.display = 'block';
+            results.classList.remove('show');
+            error.classList.remove('show');
+            destroyCharts();
+            
+            // Make request to backend
+            fetch('/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ticker: ticker })
+            })
+            .then(response => response.json())
+            .then(data => {
+                spinner.style.display = 'none';
+                btnText.textContent = 'Analyze Stock';
+                analyzeBtn.disabled = false;
+                setInputDisabled(false);
+                
+                if (data.error) {
+                    errorText.textContent = data.error;
+                    error.classList.add('show');
+                } else {
+                    // Main Results
+                    const signalClass = getSignalClass(data.signal);
+                    mainResults.innerHTML = `
+                        ${createResultItem('Stock', data.ticker)}
+                        ${createResultItem('Latest Signal', `<span class="signal-badge ${signalClass}">${data.signal}</span>`)}
+                        ${createResultItem('Confidence', `${data.confidence}%`)}
+                        ${createResultItem('Current Price', formatCurrency(data.price))}
+                        ${createResultItem('Target Price', formatCurrency(data.target_price || data.predicted_price), 'success')}
+                        ${createResultItem('Stop Loss', formatCurrency(data.stop_loss || data.support), 'destructive')}
+                        ${createResultItem('Predicted Price (5 days)', formatCurrency(data.predicted_price))}
+                        ${createResultItem('Support Level', formatCurrency(data.support))}
+                        ${createResultItem('Resistance Level', formatCurrency(data.resistance))}
+                    `;
+                    
+                    // Technical Indicators
+                    if (data.rsi || data.macd || data.volume) {
+                        indicatorsTitle.style.display = 'block';
+                        indicatorsGrid.innerHTML = '';
+                        if (data.rsi) {
+                            indicatorsGrid.innerHTML += `
+                                <div class="indicator-item">
+                                    <div class="indicator-label">RSI</div>
+                                    <div class="indicator-value ${data.rsi > 70 ? 'destructive' : data.rsi < 30 ? 'success' : ''}">${data.rsi}</div>
+                                </div>
+                            `;
+                        }
+                        if (data.macd !== null && data.macd !== undefined) {
+                            indicatorsGrid.innerHTML += `
+                                <div class="indicator-item">
+                                    <div class="indicator-label">MACD</div>
+                                    <div class="indicator-value">${data.macd.toFixed(4)}</div>
+                                </div>
+                            `;
+                        }
+                        if (data.macd_diff !== null && data.macd_diff !== undefined) {
+                            indicatorsGrid.innerHTML += `
+                                <div class="indicator-item">
+                                    <div class="indicator-label">MACD Hist</div>
+                                    <div class="indicator-value ${data.macd_diff >= 0 ? 'success' : 'destructive'}">${data.macd_diff.toFixed(4)}</div>
+                                </div>
+                            `;
+                        }
+                        if (data.atr) {
+                            indicatorsGrid.innerHTML += `
+                                <div class="indicator-item">
+                                    <div class="indicator-label">ATR</div>
+                                    <div class="indicator-value">${data.atr}</div>
+                                </div>
+                            `;
+                        }
+                        if (data.volume) {
+                            indicatorsGrid.innerHTML += `
+                                <div class="indicator-item">
+                                    <div class="indicator-label">Volume</div>
+                                    <div class="indicator-value">${formatNumber(data.volume)}</div>
+                                </div>
+                            `;
+                        }
+                        if (data.bb_upper) {
+                            indicatorsGrid.innerHTML += `
+                                <div class="indicator-item">
+                                    <div class="indicator-label">BB Upper</div>
+                                    <div class="indicator-value">${formatCurrency(data.bb_upper)}</div>
+                                </div>
+                            `;
+                        }
+                        if (data.bb_lower) {
+                            indicatorsGrid.innerHTML += `
+                                <div class="indicator-item">
+                                    <div class="indicator-label">BB Lower</div>
+                                    <div class="indicator-value">${formatCurrency(data.bb_lower)}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    // Backtesting Results
+                    const profitLossClass = data.profit_loss >= 0 ? 'success' : 'destructive';
+                    backtestResults.innerHTML = `
+                        ${createResultItem('Initial Capital', formatCurrency(data.initial_capital))}
+                        ${createResultItem('Final Capital', formatCurrency(data.final_capital))}
+                        ${createResultItem('Total P/L', formatCurrency(data.profit_loss), profitLossClass)}
+                        ${createResultItem('Win Rate', `${data.win_rate.toFixed(2)}%`)}
+                        ${createResultItem('Total Trades', data.num_trades)}
+                    `;
+                    
+                    // Render Charts
+                    renderCharts(data);
+                    
+                    results.classList.add('show');
+                }
+            })
+            .catch(err => {
+                spinner.style.display = 'none';
+                btnText.textContent = 'Analyze Stock';
+                analyzeBtn.disabled = false;
+                setInputDisabled(false);
+                errorText.textContent = 'Error: ' + (err.message || 'Failed to connect to server');
+                error.classList.add('show');
+            });
+        }
+
+        // Disable input during analysis
+        function setInputDisabled(disabled) {
+            document.getElementById('ticker').disabled = disabled;
+        }
+    </script>
+</body>
+</html>

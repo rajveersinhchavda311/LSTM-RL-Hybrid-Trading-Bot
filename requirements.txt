@@ -1,0 +1,12 @@
+yfinance
+pandas
+matplotlib
+ta
+numpy
+scikit-learn
+tensorflow
+tf2onnx
+stable-baselines3
+gymnasium
+flask
+requests
