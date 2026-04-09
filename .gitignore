@@ -33,8 +33,9 @@ ENV/
 *.swo
 *~
 .DS_Store
+Thumbs.db
 
-# Model files (too large for git)
+# Model files (too large for git or generated)
 *.h5
 *.pb
 *.tflite
@@ -45,9 +46,23 @@ models/
 *.ckpt
 *.pth
 
-# Data files
+# Data files (large datasets)
 data/
 *.csv
+
+# Generated outputs and reports
+outputs/
+report/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
 *.xlsx
 *.parquet
 
